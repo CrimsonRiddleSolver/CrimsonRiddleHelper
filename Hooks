@@ -1,0 +1,134 @@
+package codes.biscuit.skyblockaddons.asm.hooks;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ActiveRenderInfo;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.entity.Entity;
+
+public class EffectRendererHook$OverlayInfo {
+    private final float rotationX = ActiveRenderInfo.func_178808_b();
+    private final float rotationZ = ActiveRenderInfo.func_178803_d();
+    private final float rotationYZ = ActiveRenderInfo.func_178805_e();
+    private final float rotationXY = ActiveRenderInfo.func_178807_f();
+    private final float rotationXZ = ActiveRenderInfo.func_178809_c();
+    private final float partialTicks;
+    private final TextureManager renderer;
+    private final WorldRenderer worldRenderer;
+    private final Entity renderViewEntity;
+
+    public EffectRendererHook$OverlayInfo(float thePartialTicks) {
+        this.partialTicks = thePartialTicks;
+        this.renderer = Minecraft.func_71410_x().field_71452_i.field_78877_c;
+        this.worldRenderer = Tessellator.func_178181_a().func_178180_c();
+        this.renderViewEntity = Minecraft.func_71410_x().func_175606_aa();
+    }
+
+    public float getRotationX() {
+        return this.rotationX;
+    }
+
+    public float getRotationZ() {
+        return this.rotationZ;
+    }
+
+    public float getRotationYZ() {
+        return this.rotationYZ;
+    }
+
+    public float getRotationXY() {
+        return this.rotationXY;
+    }
+
+    public float getRotationXZ() {
+        return this.rotationXZ;
+    }
+
+    public float getPartialTicks() {
+        return this.partialTicks;
+    }
+
+    public TextureManager getRenderer() {
+        return this.renderer;
+    }
+
+    public WorldRenderer getWorldRenderer() {
+        return this.worldRenderer;
+    }
+
+    public Entity getRenderViewEntity() {
+        return this.renderViewEntity;
+    }
+}
+package codes.biscuit.KuudraHelper.asm.hooks;
+
+import codes.biscuit.KuudraHelper.KuudraHelper;
+import codes.biscuit.KuudraHelper.core.Feature;
+import codes.biscuit.KuudraHelper.misc.scheduler.SkyblockRunnable;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import net.minecraft.client.Minecraft;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.IProjectile;
+import net.minecraft.entity.monster.EntityMob;
+import net.minecraft.entity.passive.EntityWolf;
+import net.minecraft.potion.PotionEffect;
+import net.minecraft.util.AxisAlignedBB;
+
+public class EntityLivingBaseHook {
+    private static Set<Long> nightVisionEffectsToRemove = new HashSet<Long>();
+
+    public static void onResetHurtTime(EntityLivingBase entity) {
+        if (entity == Minecraft.func_71410_x().field_71439_g) {
+            KuudraHelper main = KuudraHelper.getInstance();
+            if (!main.getUtils().isOnSkyblock() || !main.getConfigValues().isEnabled(Feature.COMBAT_TIMER_DISPLAY)) {
+                return;
+            }
+            Minecraft mc = Minecraft.func_71410_x();
+            List nearEntities = mc.field_71441_e.func_72872_a(Entity.class, new AxisAlignedBB(mc.field_71439_g.field_70165_t - 3.0, mc.field_71439_g.field_70163_u - 2.0, mc.field_71439_g.field_70161_v - 3.0, mc.field_71439_g.field_70165_t + 3.0, mc.field_71439_g.field_70163_u + 2.0, mc.field_71439_g.field_70161_v + 3.0));
+            boolean foundPossibleAttacker = false;
+            for (Entity nearEntity : nearEntities) {
+                if (!(nearEntity instanceof EntityMob) && !(nearEntity instanceof EntityWolf) && !(nearEntity instanceof IProjectile)) continue;
+                foundPossibleAttacker = true;
+                break;
+            }
+            if (foundPossibleAttacker) {
+                KuudraHelper.getInstance().getUtils().setLastDamaged(System.currentTimeMillis());
+            }
+        }
+    }
+
+    public static boolean onRemovePotionEffect(final EntityLivingBase entityLivingBase, final int potionID) {
+        SkyblockAddons main = KuudraHelper.getInstance();
+        if (potionID == 16 && entityLivingBase == Minecraft.func_71410_x().field_71439_g && main.getUtils().isOnSkyblock() && main.getConfigValues().isEnabled(Feature.AVOID_BLINKING_NIGHT_VISION)) {
+            final long now = System.currentTimeMillis();
+            nightVisionEffectsToRemove.add(now);
+            main.getNewScheduler().scheduleDelayedTask(new SkyblockRunnable(){
+
+                @Override
+                public void run() {
+                    if (nightVisionEffectsToRemove.remove(now)) {
+                        entityLivingBase.func_82170_o(potionID);
+                    }
+                }
+            }, 2);
+            return true;
+        }
+        return false;
+    }
+
+    public static void onAddPotionEffect(EntityLivingBase entityLivingBase, PotionEffect potionEffect) {
+        SkyblockAddons main = KuudraHelper.getInstance();
+        if (potionEffect.func_76456_a() == 16 && potionEffect.func_76459_b() == 300 && entityLivingBase == Minecraft.func_71410_x().field_71439_g && main.getUtils().isOnSkyblock() && main.getConfigValues().isEnabled(Feature.AVOID_BLINKING_NIGHT_VISION)) {
+            nightVisionEffectsToRemove.clear();
+        }
+    }
+}
+
+package codes.biscuit.hypixellocalizationlib;
+
+public class HypixelLocalization {
+}
